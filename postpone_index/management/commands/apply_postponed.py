@@ -93,6 +93,12 @@ Additional names are:
             default='default',
             help='Database alias to be applied, default is %(default)s'
         )
+        run.add_argument(
+            '--skip-validate',
+            dest='skip_validate',
+            action='store_true',
+            help='Skip VALIDATE CONSTRAINT steps (useful for large tables; validate later)'
+        )
         cleanup = subparsers.add_parser(
             name='cleanup',
             formatter_class=self.formatter_class,
@@ -259,25 +265,32 @@ Additional names are:
             cursor.execute(sql)
             cursor.close()
             # Step 2: VALIDATE CONSTRAINT (long, no exclusive lock)
-            sql = 'ALTER TABLE "%s" VALIDATE CONSTRAINT "%s"' % (
-                table_name,
-                index_name,
-            )
-            logger.info('[%s] SQL: %s', options['database'], sql)
-            cursor = connections[options['database']].cursor()
-            cursor.execute(sql)
-            cursor.close()
+            if options.get('skip_validate'):
+                logger.info('[%s] Skipping VALIDATE CONSTRAINT "%s" on "%s"', options['database'], index_name, table_name)
+            else:
+                sql = 'ALTER TABLE "%s" VALIDATE CONSTRAINT "%s"' % (
+                    table_name,
+                    index_name,
+                )
+                logger.info('[%s] SQL: %s', options['database'], sql)
+                cursor = connections[options['database']].cursor()
+                cursor.execute(sql)
+                cursor.close()
         elif match := self._validate_constraint_re.fullmatch(job.sql):
             index_name = match.group('index_nameq') or match.group('index_name')
             table_name = match.group('table_nameq') or match.group('table_name')
-            sql = 'ALTER TABLE "%s" VALIDATE CONSTRAINT "%s"' % (
-                table_name,
-                index_name,
-            )
-            logger.info('[%s] SQL: %s', options['database'], sql)
-            cursor = connections[options['database']].cursor()
-            cursor.execute(sql)
-            cursor.close()
+            if options.get('skip_validate'):
+                logger.info('[%s] Skipping VALIDATE CONSTRAINT "%s" on "%s"', options['database'], index_name, table_name)
+                return  # Leave job as not done so it can be picked up later
+            else:
+                sql = 'ALTER TABLE "%s" VALIDATE CONSTRAINT "%s"' % (
+                    table_name,
+                    index_name,
+                )
+                logger.info('[%s] SQL: %s', options['database'], sql)
+                cursor = connections[options['database']].cursor()
+                cursor.execute(sql)
+                cursor.close()
         else:
             logger.info('[%s] Unrecognized: %s', options['database'], sql)
             cursor = connections[options['database']].cursor()
