@@ -77,6 +77,27 @@ class Utils:
         r'(?P<rest>.*)$',
         re.IGNORECASE | re.MULTILINE
     )
+    _not_valid_re = re.compile(
+        r'\bNOT\s+VALID\b',
+        re.IGNORECASE
+    )
+    _add_fk_constraint_re = re.compile(
+        r'^\s*ALTER\s+TABLE\s+'
+        r'(("?)public("?)\.)?(((?P<tq>")?(?P<table_nameq>[^"]+)(?P=tq))|(?P<table_name>[_a-zA-Z0-9]+))'
+        r'\s+ADD\s+CONSTRAINT\s+'
+        r'(((?P<iq>")?(?P<index_nameq>[^"]+)(?P=iq))|(?P<index_name>[^\s]+))'
+        r'\s+FOREIGN\s+KEY\s+'
+        r'(?P<rest>.*)$',
+        re.IGNORECASE | re.MULTILINE
+    )
+    _validate_constraint_re = re.compile(
+        r'^\s*ALTER\s+TABLE\s+'
+        r'(("?)public("?)\.)?(((?P<tq>")?(?P<table_nameq>[^"]+)(?P=tq))|(?P<table_name>[_a-zA-Z0-9]+))'
+        r'\s+VALIDATE\s+CONSTRAINT\s+'
+        r'(((?P<iq>")?(?P<index_nameq>[^"]+)(?P=iq))|(?P<index_name>[^\s]+))'
+        r'(?P<rest>.*)$',
+        re.IGNORECASE | re.MULTILINE
+    )
     _rename_table_re = re.compile(
         r'^\s*ALTER\s+TABLE\s+'
         r'(("?)public("?)\.)?(((?P<tq>")?(?P<table_nameq>[^"]+)(?P=tq))|(?P<table_name>[_a-zA-Z0-9]+))'

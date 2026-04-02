@@ -87,6 +87,38 @@ class DatabaseSchemaEditorMixin(Utils):
                 fields=columns
             )
             logger.info('[%s] Postponed %s', self.connection.alias, description)
+        elif match := self._add_fk_constraint_re.fullmatch(str(sql)):
+            # Postpone FK constraint creation entirely
+            index_name = match.group('index_nameq') or match.group('index_name')
+            table_name = match.group('table_nameq') or match.group('table_name')
+            rest = match.group('rest')
+            columns = ','.join(self._extract_column_names(rest))
+            description = 'Add FK Constraint "%s" on "%s" (%s)' % (
+                index_name,
+                table_name,
+                columns,
+            )
+            PostponedSQL.objects.using(self.connection.alias).create(
+                sql=str(sql),
+                description=description,
+                table=table_name,
+                db_index=index_name,
+                fields=columns
+            )
+            logger.info('[%s] Postponed %s', self.connection.alias, description)
+        elif match := self._validate_constraint_re.fullmatch(str(sql)):
+            # Postpone constraint validation
+            index_name = match.group('index_nameq') or match.group('index_name')
+            table_name = match.group('table_nameq') or match.group('table_name')
+            description = 'Validate Constraint "%s" on "%s"' % (index_name, table_name)
+            PostponedSQL.objects.using(self.connection.alias).create(
+                sql=str(sql),
+                description=description,
+                table=table_name,
+                db_index=index_name,
+                fields=''
+            )
+            logger.info('[%s] Postponed %s', self.connection.alias, description)
         else:
             if match := self._drop_index_re.fullmatch(str(sql)):
                 # Override to ignore inexistent index drop error

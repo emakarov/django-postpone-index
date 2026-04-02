@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'test_model_rename',
     'test_explicit_constraint',
     'test_explicit_index',
+    'test_fk_constraint',
     'test_ignore_migration',
     'postpone_index',
     'django.contrib.admin',

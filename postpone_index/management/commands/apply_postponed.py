@@ -242,6 +242,42 @@ Additional names are:
             cursor = connections[options['database']].cursor()
             cursor.execute(sql)
             cursor.close()
+        elif match := self._add_fk_constraint_re.fullmatch(job.sql):
+            index_name = match.group('index_nameq') or match.group('index_name')
+            table_name = match.group('table_nameq') or match.group('table_name')
+            rest = match.group('rest')
+            # Strip NOT VALID if present, we add it ourselves
+            rest_clean = self._not_valid_re.sub('', rest).rstrip()
+            # Step 1: ADD CONSTRAINT ... NOT VALID (fast, small lock)
+            sql = 'ALTER TABLE "%s" ADD CONSTRAINT "%s" FOREIGN KEY %s NOT VALID' % (
+                table_name,
+                index_name,
+                rest_clean,
+            )
+            logger.info('[%s] SQL: %s', options['database'], sql)
+            cursor = connections[options['database']].cursor()
+            cursor.execute(sql)
+            cursor.close()
+            # Step 2: VALIDATE CONSTRAINT (long, no exclusive lock)
+            sql = 'ALTER TABLE "%s" VALIDATE CONSTRAINT "%s"' % (
+                table_name,
+                index_name,
+            )
+            logger.info('[%s] SQL: %s', options['database'], sql)
+            cursor = connections[options['database']].cursor()
+            cursor.execute(sql)
+            cursor.close()
+        elif match := self._validate_constraint_re.fullmatch(job.sql):
+            index_name = match.group('index_nameq') or match.group('index_name')
+            table_name = match.group('table_nameq') or match.group('table_name')
+            sql = 'ALTER TABLE "%s" VALIDATE CONSTRAINT "%s"' % (
+                table_name,
+                index_name,
+            )
+            logger.info('[%s] SQL: %s', options['database'], sql)
+            cursor = connections[options['database']].cursor()
+            cursor.execute(sql)
+            cursor.close()
         else:
             logger.info('[%s] Unrecognized: %s', options['database'], sql)
             cursor = connections[options['database']].cursor()
